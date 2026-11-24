@@ -1,22 +1,30 @@
 # CipherKeys
 
-CipherKeys is an educational, reversible cryptographic puzzle built around Korean 2-beolsik keyboard input. It combines a real authenticated-encryption primitive with reversible keyboard-layout transformations.
+CipherKeys is an educational, reversible cryptographic puzzle. It automatically chooses a text preparation route, then applies authenticated encryption and reversible keyboard-layout puzzle transformations.
 
-> **Security note:** AES-256-GCM provides the cryptographic protection. Keyboard layouts and Base32 are puzzle/representation layers only; they do not add cryptographic strength. This project is for learning and experimentation, not a reviewed production protocol.
+> **Security note:** AES-256-GCM provides the cryptographic protection. Keyboard layouts and Base32 are representation/puzzle layers only; they do not add cryptographic strength. This project is for learning and experimentation, not a reviewed production protocol.
 
-## What it does
+## Automatic input detection
 
-For the example message `안녕`, standard Korean 2-beolsik input produces `dkssud`. CipherKeys then:
+No language flag is required:
 
-1. Converts supported Hangul syllables into 2-beolsik keystrokes.
-2. Encrypts those UTF-8 bytes with AES-256-GCM.
-3. Base32-encodes the ciphertext and authentication tag.
-4. Applies a randomly selected sequence of reversible QWERTY, Dvorak, and AZERTY key-position transformations.
-5. Writes a JSON puzzle and a separate 256-bit secret-key file.
+- **Hangul route:** text consisting only of precomposed Hangul syllables and ordinary spaces is converted to standard Korean 2-beolsik keystrokes before encryption. For example, `안녕` becomes `dkssud`.
+- **UTF-8 route:** English, punctuation, numbers, emoji, other scripts, and mixed-language text are encrypted as their original UTF-8 bytes. This preserves the input exactly, including mixed Korean/English messages.
 
-The recipient reverses the layout steps, Base32-decodes, authenticates/decrypts with AES-GCM, and converts the keystrokes back into Hangul.
+Both routes use AES-256-GCM, Base32, and a randomly selected sequence of reversible QWERTY, Dvorak, and AZERTY key-position transformations. The selected route is recorded in the puzzle manifest, so decryption selects the matching reverse process automatically.
 
-The public puzzle manifest (algorithm, encoding, version, and layout sequence) is authenticated as AES-GCM associated data. Changing that metadata causes authentication to fail. The nonce is public and is stored in the puzzle JSON. A fresh 96-bit nonce is generated for every encryption under a key.
+## How it works
+
+1. Detect the input route.
+2. For Hangul-only input, convert Hangul to 2-beolsik keystrokes; otherwise, keep the original text.
+3. Encrypt the UTF-8 bytes with AES-256-GCM.
+4. Base32-encode the ciphertext and authentication tag.
+5. Apply a random sequence of reversible keyboard-layout transformations.
+6. Store the puzzle metadata, nonce, and transformed text in JSON.
+
+The public manifest (version, algorithm, encoding, input route, and layout sequence) is authenticated as AES-GCM associated data. Modifying that metadata causes authentication to fail. The nonce is public and is stored in the puzzle JSON. A fresh 96-bit nonce is generated for each encryption.
+
+Version 1 Korean-only puzzle files remain decryptable for backward compatibility.
 
 ## Requirements
 
@@ -37,18 +45,32 @@ If PowerShell blocks activation, use the virtual-environment interpreter directl
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Create a puzzle
+## Create puzzles
+
+Korean:
 
 ```powershell
 python main.py encrypt --message "안녕"
 ```
 
-This creates:
+English:
+
+```powershell
+python main.py encrypt --message "Hello, World!"
+```
+
+Mixed-language:
+
+```powershell
+python main.py encrypt --message "안녕, hello!"
+```
+
+CipherKeys automatically chooses the route and reports it. Each command creates:
 
 - `puzzle.json` — the puzzle, nonce, and public transformation manifest.
 - `shared.key` — the secret AES-256 key in Base64 text form.
 
-Send the puzzle and key to the recipient through **separate channels**. Anyone who obtains the key can decrypt the puzzle. Never commit `shared.key` or other real key material to Git.
+Send the puzzle and key through **separate channels**. Anyone who obtains the key can decrypt the puzzle. Never commit `shared.key` or other real key material to Git.
 
 ## Solve a puzzle
 
@@ -56,11 +78,7 @@ Send the puzzle and key to the recipient through **separate channels**. Anyone w
 python main.py decrypt --input puzzle.json --key-file shared.key
 ```
 
-Expected output:
-
-```text
-Recovered message: 안녕
-```
+The recipient does not need to specify the language. The authenticated manifest tells CipherKeys which reverse text path to use.
 
 ## Run tests
 
@@ -68,14 +86,14 @@ Recovered message: 안녕
 python -m unittest discover -s tests -v
 ```
 
-Tests cover Korean keyboard round-trips, reversible layout transformations, successful puzzle recovery, wrong-key rejection, and tampered metadata rejection.
+Tests cover automatic route selection, Korean/English/mixed-language round-trips, reversible keyboard transformations, wrong-key rejection, and metadata tampering.
 
 ## Current scope and limitations
 
-- The initial Korean converter supports precomposed Hangul syllables and spaces. It deliberately rejects other characters rather than silently creating ambiguous output.
-- Keyboard layouts operate on 26 letter-key positions. Some Dvorak/AZERTY positions become punctuation; this is expected and reversible.
-- The layout sequence is included in the public manifest in this first version, so the recipient does not yet have to infer it from clues. Later puzzle versions can hide the sequence behind clues while retaining enough information to solve it.
-- AES-GCM keys must be kept secret. Do not reuse a nonce with the same key. This application generates a fresh random nonce for each encryption.
+- Korean keyboard conversion currently supports precomposed Hangul syllables and ordinary spaces. Korean input containing punctuation or Latin characters uses the UTF-8 route to preserve it exactly.
+- The layout sequence is included in the public manifest in this version, so the recipient does not yet have to infer it from clues. A future puzzle mode can hide the sequence behind clues.
+- Keyboard layouts operate on 26 physical letter-key positions. Some Dvorak positions become punctuation; this is expected and reversible.
+- AES-GCM keys must be kept secret. Never reuse a nonce with the same key. CipherKeys generates a fresh random nonce for each encryption.
 - The key file is deliberately separate from the puzzle file and is excluded by `.gitignore`.
 
 ## Project layout
@@ -84,10 +102,10 @@ Tests cover Korean keyboard round-trips, reversible layout transformations, succ
 cipher-game/
 ├── cipher_game/
 │   ├── __init__.py
-│   ├── crypto.py       # AES-256-GCM and key serialization
-│   ├── korean.py       # Hangul / 2-beolsik conversion
-│   ├── layouts.py      # Reversible keyboard-layout transformations
-│   └── puzzle.py       # Puzzle envelope and reverse pipeline
+│   ├── crypto.py
+│   ├── korean.py
+│   ├── layouts.py
+│   └── puzzle.py
 ├── tests/
 │   └── test_cipher_game.py
 ├── main.py
