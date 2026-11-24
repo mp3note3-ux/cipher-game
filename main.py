@@ -13,7 +13,7 @@ from cipher_game import create_puzzle, generate_key, key_from_text, key_to_text,
 
 
 def _encrypt(args: argparse.Namespace) -> int:
-    message = args.message if args.message is not None else input("Korean message: ")
+    message = args.message if args.message is not None else input("Message: ")
     key = generate_key()
     envelope = create_puzzle(message, key)
 
@@ -25,6 +25,12 @@ def _encrypt(args: argparse.Namespace) -> int:
     )
     key_path.write_text(key_to_text(key) + "\n", encoding="ascii")
 
+    route = (
+        "Korean 2-beolsik"
+        if envelope["text_mode"] == "korean-2beolsik"
+        else "UTF-8 (English, mixed, or other text)"
+    )
+    print(f"Detected input route: {route}")
     print(f"Puzzle saved to: {puzzle_path}")
     print(f"Secret key saved to: {key_path}")
     print("Share the puzzle file and key through separate channels.")
@@ -46,12 +52,12 @@ def _decrypt(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Create and solve layered Korean keyboard cryptography puzzles."
+        description="Create and solve layered multilingual keyboard cryptography puzzles."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     encrypt_parser = subparsers.add_parser("encrypt", help="Create a new puzzle")
-    encrypt_parser.add_argument("--message", help="Korean message (or omit to be prompted)")
+    encrypt_parser.add_argument("--message", help="Message to encrypt (or omit to be prompted)")
     encrypt_parser.add_argument("--output", default="puzzle.json", help="Puzzle output file")
     encrypt_parser.add_argument("--key-file", default="shared.key", help="Separate secret-key file")
     encrypt_parser.set_defaults(func=_encrypt)
