@@ -10,7 +10,7 @@ import secrets
 _LAYOUT_ROWS = {
     "qwerty": "qwertyuiopasdfghjklzxcvbnm",
     "dvorak": "',.pyfgcrlaoeuidhtn;qjkxbm",
-    "azerty": "azertyuiopqsdfghjklwxcvbnm",
+    "azerty": "azertyuiopqsdfghjklwxcvbn,",
 }
 
 for _name, _labels in _LAYOUT_ROWS.items():
