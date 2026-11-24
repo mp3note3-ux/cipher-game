@@ -5,12 +5,12 @@ from __future__ import annotations
 import secrets
 
 # Labels at the 26 physical positions occupied by letters on QWERTY.
-# Some target positions become punctuation on Dvorak/AZERTY. They remain
-# reversible because each layout is represented by a one-to-one mapping.
+# Some target positions become punctuation on Dvorak. This is expected:
+# the mapping describes physical key positions, not alphabet substitution.
 _LAYOUT_ROWS = {
     "qwerty": "qwertyuiopasdfghjklzxcvbnm",
     "dvorak": "',.pyfgcrlaoeuidhtn;qjkxbm",
-    "azerty": "azertyuiopqsdfghjklwxcvbn,",
+    "azerty": "azertyuiopqsdfghjklwxcvbnm",
 }
 
 for _name, _labels in _LAYOUT_ROWS.items():
