@@ -92,7 +92,7 @@ Tests cover automatic route selection, Korean/English/mixed-language round-trips
 
 - Korean keyboard conversion currently supports precomposed Hangul syllables and ordinary spaces. Korean input containing punctuation or Latin characters uses the UTF-8 route to preserve it exactly.
 - The layout sequence is included in the public manifest in this version, so the recipient does not yet have to infer it from clues. A future puzzle mode can hide the sequence behind clues.
-- Keyboard layouts operate on 26 physical letter-key positions. Some Dvorak positions become punctuation; this is expected and reversible.
+- Keyboard layouts operate on the 26 QWERTY letter-key positions. Some target positions become punctuation (for example, Dvorak and AZERTY); this is expected and reversible.
 - AES-GCM keys must be kept secret. Never reuse a nonce with the same key. CipherKeys generates a fresh random nonce for each encryption.
 - The key file is deliberately separate from the puzzle file and is excluded by `.gitignore`.
 
