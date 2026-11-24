@@ -69,7 +69,7 @@ class LayoutTests(unittest.TestCase):
         layouts = {
             "qwerty": "qwertyuiopasdfghjklzxcvbnm",
             "dvorak": "',.pyfgcrlaoeuidhtn;qjkxbm",
-            "azerty": "azertyuiopqsdfghjklwxcvbnm",
+            "azerty": "azertyuiopqsdfghjklwxcvbn,",
         }
         for source, sample in layouts.items():
             for target in layouts:
