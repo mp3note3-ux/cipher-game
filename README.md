@@ -27,14 +27,14 @@ The public puzzle manifest (algorithm, encoding, version, and layout sequence) i
 
 ```powershell
 py -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
 
 If PowerShell blocks activation, use the virtual-environment interpreter directly:
 
 ```powershell
-.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
 ## Create a puzzle
