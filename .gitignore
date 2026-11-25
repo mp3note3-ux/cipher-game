@@ -8,6 +8,7 @@ venv/
 shared.key
 *.key
 puzzle.json
+recovered-message.txt
 
 .vscode/
 .DS_Store

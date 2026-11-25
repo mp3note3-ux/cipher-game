@@ -8,6 +8,7 @@
     recoveredMessage: null,
     lastRoute: null,
     transitions: 3,
+    explorerIndex: 0,
   };
 
   const viewNames = {
@@ -71,6 +72,11 @@
     showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2800);
   }
 
+  function setSidebarOpen(open) {
+    $("sidebar").classList.toggle("open", open);
+    $("mobileMenu").setAttribute("aria-expanded", String(open));
+  }
+
   function navigate(view) {
     if (!viewNames[view]) return;
     document.querySelectorAll(".view").forEach((node) => {
@@ -82,7 +88,7 @@
       else node.removeAttribute("aria-current");
     });
     $("pageTitle").textContent = viewNames[view];
-    $("sidebar").classList.remove("open");
+    setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -98,31 +104,50 @@
       navigate(node.dataset.viewLink);
     });
   });
-  $("mobileMenu").addEventListener("click", () => $("sidebar").classList.toggle("open"));
+  $("mobileMenu").addEventListener("click", () => setSidebarOpen(!$("sidebar").classList.contains("open")));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && $("sidebar").classList.contains("open")) {
+      setSidebarOpen(false);
+      $("mobileMenu").focus();
+    }
+  });
 
-  function setTheme(theme) {
+  // Preferences are optional conveniences. Defaults are applied without being
+  // written to storage, so "follow the system theme" stays in effect until the
+  // person actually chooses something.
+  function setTheme(theme, persist = true) {
     const safeTheme = theme === "light" ? "light" : "dark";
     document.documentElement.dataset.theme = safeTheme;
     $("themeSelect").value = safeTheme;
+    if (!persist) return;
     try { localStorage.setItem("cipherkeys-theme", safeTheme); } catch (_) { /* Preferences are optional. */ }
   }
 
-  function setTransitions(value) {
+  function setTransitions(value, persist = true) {
     const parsed = Number(value);
     state.transitions = Number.isInteger(parsed) && parsed >= 2 && parsed <= 4 ? parsed : 3;
     $("transitionSelect").value = String(state.transitions);
     $("defaultTransitions").value = String(state.transitions);
+    if (!persist) return;
     try { localStorage.setItem("cipherkeys-transitions", String(state.transitions)); } catch (_) { /* Preferences are optional. */ }
   }
 
-  let savedTheme = "dark";
-  let savedTransitions = "3";
+  function systemTheme() {
+    try {
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    } catch (_) {
+      return "dark";
+    }
+  }
+
+  let savedTheme = null;
+  let savedTransitions = null;
   try {
-    savedTheme = localStorage.getItem("cipherkeys-theme") || "dark";
-    savedTransitions = localStorage.getItem("cipherkeys-transitions") || "3";
+    savedTheme = localStorage.getItem("cipherkeys-theme");
+    savedTransitions = localStorage.getItem("cipherkeys-transitions");
   } catch (_) { /* App remains usable when storage is disabled. */ }
-  setTheme(savedTheme);
-  setTransitions(savedTransitions);
+  setTheme(savedTheme === "light" || savedTheme === "dark" ? savedTheme : systemTheme(), false);
+  setTransitions(savedTransitions === null ? 3 : savedTransitions, false);
   $("themeSelect").addEventListener("change", (event) => {
     setTheme(event.target.value);
     $("settingsSaved").textContent = "Theme preference saved in this browser.";
@@ -134,6 +159,8 @@
   $("transitionSelect").addEventListener("change", (event) => setTransitions(event.target.value));
   $("themeQuickToggle").addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
 
+  // Mirrors cipher_game.puzzle.detect_text_mode. The server makes the final
+  // decision and the result panel reports exactly what it chose.
   function detectRoute(message) {
     if (!message) return null;
     const chars = Array.from(message);
@@ -300,6 +327,8 @@
       $("puzzleFileName").textContent = "Invalid puzzle file";
       setError("decryptError", error.message || "Unable to read the puzzle file.");
     }
+    // Allow re-selecting the same file after fixing it on disk.
+    event.target.value = "";
   });
 
   $("keyFileInput").addEventListener("change", async (event) => {
@@ -310,12 +339,14 @@
     }
     try {
       if (file.size > 10_000) throw new Error("Key file is unexpectedly large.");
-      $("keyInput").value = (await file.text()).trim();
+      // Strip a possible BOM so files saved by some Windows editors still work.
+      $("keyInput").value = (await file.text()).replace(/^\uFEFF/, "").trim();
       $("keyFileName").textContent = file.name;
       showToast("Secret key loaded into this page.");
     } catch (error) {
       setError("decryptError", error.message);
     }
+    event.target.value = "";
   });
 
   $("decryptButton").addEventListener("click", async () => {
@@ -380,8 +411,6 @@
     $("explorerNote").textContent = stage.note;
     $("prevStepButton").disabled = safeIndex === 0;
     $("nextStepButton").disabled = safeIndex === explorerStages.length - 1;
-    $("prevStepButton").dataset.step = String(safeIndex - 1);
-    $("nextStepButton").dataset.step = String(safeIndex + 1);
     state.explorerIndex = safeIndex;
   }
   document.querySelectorAll(".explorer-step").forEach((button) => {
@@ -410,10 +439,24 @@
     $("puzzleFileInput").dispatchEvent(new Event("change"));
   });
 
+  // The file inputs are hidden, so make their labels keyboard-operable.
+  [["puzzleDropZone", "puzzleFileInput"], ["keyFileLabel", "keyFileInput"]].forEach(([labelId, inputId]) => {
+    const label = $(labelId);
+    label.tabIndex = 0;
+    label.setAttribute("role", "button");
+    label.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        $(inputId).click();
+      }
+    });
+  });
+
   // Do not place message contents or keys in localStorage, cookies, or logs.
   window.addEventListener("pagehide", () => {
     state.key = null;
     state.puzzle = null;
     state.recoveredMessage = null;
+    $("keyInput").value = "";
   });
 })();

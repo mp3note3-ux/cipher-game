@@ -8,14 +8,25 @@ from typing import Any
 
 from .crypto import decrypt_bytes, encrypt_bytes
 from .korean import hangul_to_2beolsik, keys_to_hangul
-from .layouts import LAYOUTS, apply_layout_sequence, generate_layout_sequence, reverse_layout_sequence
+from .layouts import (
+    LAYOUTS,
+    MAX_SEQUENCE_LENGTH,
+    apply_layout_sequence,
+    generate_layout_sequence,
+    reverse_layout_sequence,
+)
 
+# Puzzle *file format* version. Not the same as the application version
+# (`cipher_game.__version__`); bump this only when the JSON envelope changes.
 VERSION = 2
 LEGACY_VERSION = 1
 ALGORITHM = "AES-256-GCM"
 ENCODING = "BASE32"
 KOREAN_MODE = "korean-2beolsik"
 UTF8_MODE = "utf-8"
+
+# Single source of truth for the maximum message size (in characters).
+MAX_MESSAGE_LENGTH = 20_000
 
 
 def detect_text_mode(message: str) -> str:
@@ -24,6 +35,10 @@ def detect_text_mode(message: str) -> str:
     Korean mode currently accepts precomposed Hangul syllables and ordinary
     spaces. English, punctuation, emoji, other scripts, and mixed-language
     messages use UTF-8 directly so that no characters are lost.
+
+    As a safety net, Korean mode is only chosen if the keystroke conversion
+    provably round-trips for this exact message; otherwise UTF-8 is used so a
+    puzzle can never be created that cannot be solved.
     """
     if not isinstance(message, str):
         raise TypeError("message must be a string")
@@ -34,13 +49,18 @@ def detect_text_mode(message: str) -> str:
         for char in message
     )
     if message and has_hangul and hangul_or_spaces_only:
-        return KOREAN_MODE
+        try:
+            if keys_to_hangul(hangul_to_2beolsik(message)) == message:
+                return KOREAN_MODE
+        except ValueError:
+            pass
     return UTF8_MODE
 
 
 def _manifest(envelope: dict[str, Any]) -> dict[str, Any]:
     version = envelope.get("version")
-    if version not in (LEGACY_VERSION, VERSION):
+    # `type(...) is int` rejects True/1.0, which compare equal to 1/2 in Python.
+    if type(version) is not int or version not in (LEGACY_VERSION, VERSION):
         raise ValueError("Unsupported puzzle version.")
 
     manifest = {
@@ -55,7 +75,7 @@ def _manifest(envelope: dict[str, Any]) -> dict[str, Any]:
     sequence = manifest["layout_sequence"]
     if (
         not isinstance(sequence, list)
-        or len(sequence) < 2
+        or not 2 <= len(sequence) <= MAX_SEQUENCE_LENGTH
         or any(not isinstance(item, str) or item not in LAYOUTS for item in sequence)
     ):
         raise ValueError("Invalid keyboard layout sequence.")
@@ -82,6 +102,8 @@ def create_puzzle(
 ) -> dict[str, Any]:
     """Automatically select a text route, encrypt it, and wrap it as a puzzle."""
     text_mode = detect_text_mode(message)
+    if len(message) > MAX_MESSAGE_LENGTH:
+        raise ValueError(f"Messages are limited to {MAX_MESSAGE_LENGTH:,} characters.")
     if text_mode == KOREAN_MODE:
         prepared_text = hangul_to_2beolsik(message)
     else:
@@ -113,6 +135,8 @@ def create_puzzle(
 
 def solve_puzzle(envelope: dict[str, Any], key: bytes) -> str:
     """Reverse puzzle layers, authenticate/decrypt, and recover the source text."""
+    if not isinstance(envelope, dict):
+        raise ValueError("Puzzle envelope must be a JSON object.")
     manifest = _manifest(envelope)
     puzzle_text = envelope.get("puzzle_text")
     nonce_text = envelope.get("nonce")

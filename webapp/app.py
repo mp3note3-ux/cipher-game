@@ -9,6 +9,7 @@ from flask import Flask, jsonify, render_template, request
 from cryptography.exceptions import InvalidTag
 
 from cipher_game import (
+    __version__,
     create_puzzle,
     generate_key,
     key_from_text,
@@ -17,14 +18,21 @@ from cipher_game import (
 )
 from cipher_game.korean import hangul_to_2beolsik
 from cipher_game.layouts import generate_layout_sequence
-from cipher_game.puzzle import detect_text_mode, KOREAN_MODE
+from cipher_game.puzzle import KOREAN_MODE, MAX_MESSAGE_LENGTH, VERSION as PUZZLE_FORMAT_VERSION
 
-MAX_MESSAGE_LENGTH = 20_000
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
 
 
 def _json_error(message: str, status: int):
     return jsonify({"ok": False, "error": message}), status
+
+
+def _request_hostname() -> str:
+    """Hostname from the Host header, without port; empty if malformed."""
+    try:
+        return (urlsplit(f"//{request.host}").hostname or "").lower()
+    except ValueError:
+        return ""
 
 
 def create_app(test_config: dict[str, Any] | None = None) -> Flask:
@@ -36,16 +44,16 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config.update(
         MAX_CONTENT_LENGTH=1_000_000,
-        JSON_AS_ASCII=False,
         TESTING=False,
     )
+    # Flask >= 2.3 ignores the JSON_AS_ASCII config key; set it on the provider.
+    app.json.ensure_ascii = False
     if test_config:
         app.config.update(test_config)
 
     @app.before_request
     def restrict_local_access():
-        host = request.host.split(":", 1)[0].strip("[]").lower()
-        if host not in ALLOWED_HOSTS:
+        if _request_hostname() not in ALLOWED_HOSTS:
             return _json_error("CipherKeys only accepts local connections.", 403)
 
         if request.path.startswith("/api/") and request.method in {"POST", "PUT", "PATCH", "DELETE"}:
@@ -54,8 +62,22 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
             origin = request.headers.get("Origin")
             if origin:
-                parsed = urlsplit(origin)
-                if parsed.scheme != "http" or parsed.netloc.casefold() != request.host.casefold():
+                try:
+                    parsed = urlsplit(origin)
+                    same_origin = (
+                        parsed.scheme == "http"
+                        and parsed.netloc.casefold() == request.host.casefold()
+                        and not parsed.path
+                        and not parsed.query
+                        and not parsed.fragment
+                        and parsed.username is None
+                        and parsed.password is None
+                    )
+                except ValueError:
+                    # Malformed bracketed hosts and other parser errors are
+                    # untrusted input, not an application error (500).
+                    same_origin = False
+                if not same_origin:
                     return _json_error("Cross-origin requests are not accepted.", 403)
 
     @app.after_request
@@ -85,13 +107,15 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("index.html")
+        return render_template("index.html", app_version=__version__)
 
     @app.get("/api/health")
     def health():
         return jsonify({
             "ok": True,
             "application": "CipherKeys",
+            "version": __version__,
+            "puzzle_format": PUZZLE_FORMAT_VERSION,
             "mode": "local-only",
             "algorithm": "AES-256-GCM",
         })
@@ -113,23 +137,22 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             return _json_error("Keyboard transitions must be between 2 and 4.", 400)
 
         try:
-            text_mode = detect_text_mode(message)
             layout_sequence = generate_layout_sequence(transitions)
             key = generate_key()
             envelope = create_puzzle(message, key, layout_sequence)
+            # The engine makes the final routing decision; report exactly that.
+            text_mode = envelope["text_mode"]
             route_label = (
                 "Korean 2-beolsik"
                 if text_mode == KOREAN_MODE
                 else "UTF-8 (English, mixed, or other text)"
             )
             if text_mode == KOREAN_MODE:
-                prepared_text = hangul_to_2beolsik(message)
                 preparation_label = "Korean 2-beolsik conversion"
-                preparation_preview = prepared_text
+                preparation_preview = hangul_to_2beolsik(message)
             else:
-                prepared_text = message
                 preparation_label = "UTF-8 preparation"
-                preparation_preview = f"{len(prepared_text.encode('utf-8')):,} UTF-8 bytes"
+                preparation_preview = f"{len(message.encode('utf-8')):,} UTF-8 bytes"
 
             result = {
                 "ok": True,

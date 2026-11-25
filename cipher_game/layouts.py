@@ -19,6 +19,11 @@ for _name, _labels in _LAYOUT_ROWS.items():
 
 LAYOUTS = tuple(_LAYOUT_ROWS)
 
+# A sequence of N layouts has N - 1 transitions. The same limits are enforced
+# when *reading* puzzle files so a crafted file cannot request unbounded work.
+MAX_TRANSITIONS = 8
+MAX_SEQUENCE_LENGTH = MAX_TRANSITIONS + 1
+
 
 def transform_layout(text: str, source: str, target: str) -> str:
     """Relabel physical keys from one layout to another."""
@@ -32,8 +37,10 @@ def generate_layout_sequence(transitions: int | None = None) -> list[str]:
     """Create a random layout sequence beginning at QWERTY."""
     if transitions is None:
         transitions = 2 + secrets.randbelow(3)  # 2 to 4 transitions
-    if not 1 <= transitions <= 8:
-        raise ValueError("transitions must be between 1 and 8")
+    if isinstance(transitions, bool) or not isinstance(transitions, int):
+        raise ValueError("transitions must be an integer")
+    if not 1 <= transitions <= MAX_TRANSITIONS:
+        raise ValueError(f"transitions must be between 1 and {MAX_TRANSITIONS}")
 
     sequence = ["qwerty"]
     for _ in range(transitions):
