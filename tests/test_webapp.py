@@ -57,7 +57,7 @@ class CipherKeysWebAppTests(unittest.TestCase):
             "/api/encrypt",
             json={"message": "CipherKeys", "transitions": 2},
         ).get_json()
-        wrong_key = "A" * 44
+        wrong_key = "A" * 43 + "="
         response = self.client.post(
             "/api/decrypt",
             json={"envelope": encrypted["envelope"], "key": wrong_key},
