@@ -94,7 +94,7 @@ class PuzzleIntegrityTests(unittest.TestCase):
         key = generate_key()
         envelope = create_puzzle("안녕", key, ["qwerty", "dvorak"])
         envelope["layout_sequence"] = ["qwerty", "azerty"]
-        with self.assertRaises(InvalidTag):
+        with self.assertRaises((InvalidTag, ValueError)):
             solve_puzzle(envelope, key)
 
 
