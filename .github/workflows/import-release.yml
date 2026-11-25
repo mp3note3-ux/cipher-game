@@ -5,7 +5,7 @@ on:
     branches:
       - sync/cipherkeys-v1.1.0-import
     paths:
-      - sync_archive.b64
+      - sync_archive.part*
       - .github/workflows/import-release.yml
 
 permissions:
@@ -41,7 +41,8 @@ jobs:
           import tarfile
           from pathlib import Path, PurePosixPath
 
-          raw = base64.b64decode(Path("sync_archive.b64").read_bytes(), validate=True)
+          encoded = "".join(p.read_text(encoding="ascii") for p in sorted(Path(".").glob("sync_archive.part*")))
+          raw = base64.b64decode(encoded, validate=True)
           with tarfile.open(fileobj=io.BytesIO(raw), mode="r:xz") as archive:
               for member in archive.getmembers():
                   name = PurePosixPath(member.name)
@@ -83,7 +84,8 @@ jobs:
           import tarfile
           from pathlib import Path, PurePosixPath
 
-          raw = base64.b64decode(Path("sync_archive.b64").read_bytes(), validate=True)
+          encoded = "".join(p.read_text(encoding="ascii") for p in sorted(Path(".").glob("sync_archive.part*")))
+          raw = base64.b64decode(encoded, validate=True)
           with tarfile.open(fileobj=io.BytesIO(raw), mode="r:xz") as archive:
               for member in archive.getmembers():
                   name = PurePosixPath(member.name)
@@ -98,6 +100,7 @@ jobs:
       - name: Remove temporary transfer files
         run: |
           rm -rf release sync_archive.b64 .github/workflows/import-release.yml
+          rm -f sync_archive.part*
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
           find . -type f -name '*.pyc' -delete
       - name: Commit release
