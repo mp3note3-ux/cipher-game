@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1018">
+  <title>CipherKeys — Cryptography Puzzle Studio</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" data-view-link="dashboard" aria-label="CipherKeys dashboard">
+        <span class="brand-mark">CK</span>
+        <span class="brand-copy"><strong>CipherKeys</strong><small>PUZZLE STUDIO</small></span>
+      </a>
+
+      <div class="side-label">WORKSPACE</div>
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-view="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
+        <button class="nav-item" data-view="create"><span class="nav-icon">⌑</span><span>Create puzzle</span><span class="nav-pill">NEW</span></button>
+        <button class="nav-item" data-view="solve"><span class="nav-icon">⌕</span><span>Solve puzzle</span></button>
+        <button class="nav-item" data-view="explorer"><span class="nav-icon">◇</span><span>Encryption explorer</span></button>
+      </nav>
+
+      <div class="side-label side-label-lower">PREFERENCES</div>
+      <nav class="nav-list">
+        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="local-indicator"><span class="pulse-dot"></span><span><strong>Local session</strong><small>Data stays on this device</small></span></div>
+        <div class="sidebar-version">CIPHERKEYS <span>·</span> v1.0</div>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><b>/</b><strong id="pageTitle">Dashboard</strong></div>
+        <div class="topbar-right">
+          <span class="topbar-local"><span class="pulse-dot"></span> RUNNING LOCALLY</span>
+          <button class="icon-button" id="themeQuickToggle" title="Toggle theme" aria-label="Toggle theme">◐</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="view active" id="view-dashboard" aria-labelledby="dashboardHeading">
+          <div class="welcome-row">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> YOUR PRIVATE CRYPTOGRAPHY LAB</div>
+              <h1 id="dashboardHeading">Build a puzzle.<br><span class="text-gradient">Hide a message.</span></h1>
+              <p class="lead">Experiment with real authenticated encryption and reversible keyboard transformations in one local workspace.</p>
+            </div>
+            <div class="hero-orbit" aria-hidden="true"><div class="orbit-ring ring-one"></div><div class="orbit-ring ring-two"></div><div class="orbit-core">CK</div><i class="orbit-node node-one"></i><i class="orbit-node node-two"></i><i class="orbit-node node-three"></i></div>
+          </div>
+
+          <div class="quick-actions">
+            <button class="action-card primary-action" data-go="create">
+              <span class="action-icon">⌑</span><span class="action-title">Create a puzzle</span>
+              <span class="action-description">Encrypt a new message and generate a separate secret key.</span>
+              <span class="action-link">START CREATING <b>↗</b></span>
+            </button>
+            <button class="action-card" data-go="solve">
+              <span class="action-icon secondary-icon">⌕</span><span class="action-title">Solve a puzzle</span>
+              <span class="action-description">Load a puzzle and its matching key to recover the original text.</span>
+              <span class="action-link">OPEN SOLVER <b>↗</b></span>
+            </button>
+          </div>
+
+          <div class="section-heading"><div><div class="eyebrow">SYSTEM OVERVIEW</div><h2>Cryptography at a glance</h2></div><span class="subtle-label">CURRENT ENGINE</span></div>
+          <div class="metric-grid">
+            <article class="metric-card"><span class="metric-icon">▣</span><span class="metric-label">ENCRYPTION</span><strong>AES-256-GCM</strong><small>Authenticated encryption</small></article>
+            <article class="metric-card"><span class="metric-icon">⌘</span><span class="metric-label">KEY SIZE</span><strong>256-bit</strong><small>Cryptographically random</small></article>
+            <article class="metric-card"><span class="metric-icon">↔</span><span class="metric-label">INPUT ROUTES</span><strong>Auto detect</strong><small>Hangul or UTF-8</small></article>
+            <article class="metric-card"><span class="metric-icon">⌨</span><span class="metric-label">LAYOUTS</span><strong>3 supported</strong><small>QWERTY · Dvorak · AZERTY</small></article>
+          </div>
+
+          <div class="info-strip"><span class="info-icon">ⓘ</span><div><strong>Know the layers</strong><p>AES-256-GCM protects the message. Base32 and keyboard layouts make the ciphertext puzzle-like, but do not add cryptographic strength.</p></div><button class="text-button" data-go="explorer">Explore pipeline ↗</button></div>
+        </section>
+
+        <section class="view" id="view-create" aria-labelledby="createHeading">
+          <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> ENCRYPTION WORKSPACE</div><h1 id="createHeading">Create a puzzle</h1><p class="lead">Your message is processed locally. The input route is detected automatically.</p></div><span class="status-chip"><span class="pulse-dot"></span> READY</span></div>
+
+          <div class="workspace-grid">
+            <div class="panel editor-panel">
+              <div class="panel-heading"><div><span class="panel-kicker">01 / INPUT</span><h2>Message editor</h2></div><span class="quiet-tag">PRIVATE INPUT</span></div>
+              <label for="messageInput" class="field-label">MESSAGE TO ENCRYPT</label>
+              <textarea id="messageInput" maxlength="20000" placeholder="Type a message…&#10;&#10;안녕, Hello!"></textarea>
+              <div class="editor-meta"><span id="charCount">0 / 20,000 characters</span><span id="routeBadge" class="route-badge neutral">AWAITING INPUT</span></div>
+              <div class="route-explainer" id="routeExplainer">Enter Hangul-only text for the Korean 2-beolsik route. English, mixed text, symbols and other scripts use UTF-8 directly.</div>
+              <div class="panel-divider"></div>
+              <div class="panel-heading compact-heading"><div><span class="panel-kicker">02 / CONFIGURATION</span><h2>Encryption settings</h2></div><span class="quiet-tag">SAFE DEFAULTS</span></div>
+              <div class="settings-row"><div><strong>Algorithm</strong><small>Authenticated encryption</small></div><span class="value-chip">AES-256-GCM <span class="lock-mini">▣</span></span></div>
+              <div class="settings-row"><div><strong>Text encoding</strong><small>Printable ciphertext representation</small></div><span class="value-chip">Base32</span></div>
+              <div class="settings-row"><div><strong>Keyboard transitions</strong><small>Random sequence, recorded in puzzle metadata</small></div><select id="transitionSelect" class="select-control"><option value="2">2 transitions</option><option value="3" selected>3 transitions</option><option value="4">4 transitions</option></select></div>
+              <div class="form-note"><span>ⓘ</span> Puzzle difficulty changes the transformation sequence, not the strength of AES encryption.</div>
+              <button class="button button-primary button-wide" id="encryptButton"><span>Generate puzzle</span><b>→</b></button>
+              <div class="inline-error" id="encryptError" role="alert" hidden></div>
+            </div>
+
+            <aside class="panel side-panel">
+              <span class="panel-kicker">PROCESS PREVIEW</span><h2>Your encryption path</h2>
+              <div class="mini-pipeline">
+                <div class="mini-step"><span class="step-index">01</span><div><strong>Input detection</strong><small id="miniRoute">Waiting for message</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">02</span><div><strong>Text preparation</strong><small id="miniPreparation">Automatic conversion</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">03</span><div><strong>AES-256-GCM</strong><small>Fresh nonce + auth tag</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">04</span><div><strong>Base32 encoding</strong><small>Printable representation</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">05</span><div><strong>Keyboard layers</strong><small>Random layout sequence</small></div></div>
+              </div>
+              <div class="side-warning"><span>⚿</span><div><strong>Keep your key safe</strong><p>The secret key is required to decrypt the puzzle. It is generated separately and is not included in the puzzle file.</p></div></div>
+            </aside>
+          </div>
+
+          <section class="panel result-panel" id="encryptResult" hidden>
+            <div class="result-header"><div><span class="success-mark">✓</span><div><span class="panel-kicker">ENCRYPTION COMPLETE</span><h2>Your puzzle is ready</h2></div></div><span class="status-chip success-chip">AUTHENTICATED ENCRYPTION</span></div>
+            <div class="result-details">
+              <div class="result-box"><span class="field-label">DETECTED ROUTE</span><strong id="resultRoute">UTF-8</strong></div>
+              <div class="result-box"><span class="field-label">KEYBOARD SEQUENCE</span><strong id="resultSequence">QWERTY → DVORAK</strong></div>
+              <div class="result-box"><span class="field-label">PUZZLE PREVIEW</span><code id="cipherPreview"></code></div>
+            </div>
+            <div class="key-callout"><div><span class="field-label">SEPARATE SECRET KEY</span><strong>Save this key separately. It cannot be recovered from the puzzle.</strong><code id="keyPreview">••••••••••••••••••••••••••••••••••••••••••••</code></div><button class="button button-secondary" id="revealKeyButton">Reveal key</button></div>
+            <div class="result-actions"><button class="button button-primary" id="downloadPuzzleButton">↓ Download puzzle</button><button class="button button-secondary" id="downloadKeyButton">↓ Download secret key</button><button class="button button-ghost" id="copyPuzzleButton">Copy ciphertext</button></div>
+            <p class="result-footnote">The key is held in this page's memory only so you can download it. It is not saved in browser storage or on the server.</p>
+          </section>
+        </section>
+
+        <section class="view" id="view-solve" aria-labelledby="solveHeading">
+          <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> DECRYPTION WORKSPACE</div><h1 id="solveHeading">Solve a puzzle</h1><p class="lead">Load the puzzle file and provide its matching secret key. The app detects the reverse path automatically.</p></div><span class="status-chip"><span class="pulse-dot"></span> READY</span></div>
+          <div class="solve-grid">
+            <div class="panel">
+              <div class="panel-heading"><div><span class="panel-kicker">01 / PUZZLE FILE</span><h2>Load your puzzle</h2></div><span class="file-tag">.JSON</span></div>
+              <label class="drop-zone" for="puzzleFileInput" id="puzzleDropZone"><span class="drop-icon">⇧</span><strong>Choose a puzzle file</strong><small>Browse for a CipherKeys .json file</small><span class="button button-secondary small-button">Browse files</span><span class="file-name" id="puzzleFileName">No file selected</span></label>
+              <input id="puzzleFileInput" type="file" accept=".json,application/json" hidden>
+              <div class="panel-divider"></div>
+              <div class="panel-heading"><div><span class="panel-kicker">02 / SECRET KEY</span><h2>Provide the key</h2></div><span class="file-tag">.KEY</span></div>
+              <label for="keyInput" class="field-label">PASTE KEY OR LOAD KEY FILE</label>
+              <textarea id="keyInput" class="key-input" rows="2" placeholder="Paste the Base64 secret key here…" spellcheck="false"></textarea>
+              <label class="button button-ghost file-picker-button" for="keyFileInput">＋ Choose key file</label>
+              <input id="keyFileInput" type="file" accept=".key,.txt,text/plain" hidden>
+              <span class="file-name" id="keyFileName">No key file selected</span>
+              <div class="form-note"><span>ⓘ</span> Your key is read locally and sent only to the local CipherKeys process.</div>
+              <button class="button button-primary button-wide" id="decryptButton"><span>Decrypt puzzle</span><b>→</b></button>
+              <div class="inline-error" id="decryptError" role="alert" hidden></div>
+            </div>
+            <aside class="panel side-panel">
+              <span class="panel-kicker">AUTOMATIC RECOVERY</span><h2>What happens next?</h2>
+              <div class="mini-pipeline">
+                <div class="mini-step"><span class="step-index">01</span><div><strong>Read metadata</strong><small>Identify the text route and layout path</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">02</span><div><strong>Reverse keyboard layers</strong><small>Restore the encoded payload</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">03</span><div><strong>Decode Base32</strong><small>Recover ciphertext bytes</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">04</span><div><strong>Authenticate + decrypt</strong><small>Verify key and puzzle integrity</small></div></div>
+                <div class="pipeline-connector"></div>
+                <div class="mini-step"><span class="step-index">05</span><div><strong>Restore original message</strong><small>Korean or UTF-8, automatically</small></div></div>
+              </div>
+              <div class="side-warning"><span>ⓘ</span><div><strong>Authentication matters</strong><p>If the key is wrong or authenticated puzzle data has changed, decryption is rejected.</p></div></div>
+            </aside>
+          </div>
+          <section class="panel recovered-panel" id="decryptResult" hidden>
+            <div class="result-header"><div><span class="success-mark">✓</span><div><span class="panel-kicker">DECRYPTION COMPLETE</span><h2>Message recovered</h2></div></div><span class="status-chip success-chip">AUTHENTICATION PASSED</span></div>
+            <div class="recovered-message" id="recoveredMessage"></div>
+            <div class="result-actions"><button class="button button-primary" id="copyMessageButton">Copy message</button><button class="button button-secondary" id="saveMessageButton">↓ Save as text</button></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-explorer" aria-labelledby="explorerHeading">
+          <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> LEARNING LAB</div><h1 id="explorerHeading">Encryption explorer</h1><p class="lead">Explore each layer of the CipherKeys pipeline and understand what it does.</p></div><span class="status-chip">EDUCATIONAL VIEW</span></div>
+          <div class="explorer-banner"><div><span class="panel-kicker">THE KEY DISTINCTION</span><h2>Security vs. puzzle mechanics</h2><p>AES-256-GCM provides confidentiality and tamper detection. Encodings and keyboard mappings make the result interesting to solve, but are not extra encryption.</p></div><div class="banner-symbol">⌘</div></div>
+          <div class="explorer-layout">
+            <div class="panel explorer-steps">
+              <div class="panel-heading"><div><span class="panel-kicker">PIPELINE / 06 STAGES</span><h2>Encryption stages</h2></div></div>
+              <button class="explorer-step selected" data-step="0"><span class="step-index">01</span><span><strong>Input detection</strong><small>Choose Hangul or UTF-8 route</small></span><span class="step-arrow">→</span></button>
+              <button class="explorer-step" data-step="1"><span class="step-index">02</span><span><strong>Text preparation</strong><small>2-beolsik or unchanged UTF-8</small></span><span class="step-arrow">→</span></button>
+              <button class="explorer-step" data-step="2"><span class="step-index">03</span><span><strong>AES-256-GCM</strong><small>Authenticated encryption</small></span><span class="step-arrow">→</span></button>
+              <button class="explorer-step" data-step="3"><span class="step-index">04</span><span><strong>Base32 encoding</strong><small>Bytes into printable characters</small></span><span class="step-arrow">→</span></button>
+              <button class="explorer-step" data-step="4"><span class="step-index">05</span><span><strong>Keyboard layouts</strong><small>Reversible key-position mapping</small></span><span class="step-arrow">→</span></button>
+              <button class="explorer-step" data-step="5"><span class="step-index">06</span><span><strong>Puzzle package</strong><small>JSON metadata and nonce</small></span><span class="step-arrow">→</span></button>
+            </div>
+            <div class="panel explorer-detail" aria-live="polite">
+              <span class="panel-kicker" id="explorerNumber">STAGE 01 / 06</span>
+              <div class="detail-icon" id="explorerIcon">⌕</div>
+              <h2 id="explorerTitle">Input detection</h2>
+              <p id="explorerDescription">CipherKeys checks the characters in your message. Hangul-only text uses the Korean 2-beolsik route; English, mixed scripts, punctuation and other text use UTF-8 directly.</p>
+              <div class="detail-example"><span class="field-label">EXAMPLE</span><code id="explorerExample">안녕 → Korean route<br>Hello! → UTF-8 route</code></div>
+              <div class="detail-note" id="explorerNote">This is routing logic, not encryption. It makes sure the original text can be restored correctly.</div>
+              <div class="detail-controls"><button class="button button-ghost" id="prevStepButton" disabled>← Previous</button><button class="button button-secondary" id="nextStepButton">Next stage →</button></div>
+            </div>
+          </div>
+          <div class="info-strip"><span class="info-icon">ⓘ</span><div><strong>Curious about the cryptography?</strong><p>Read the PyCA cryptography documentation to learn about AES-GCM, nonces and authenticated data.</p></div><a class="text-button" href="https://cryptography.io/en/latest/hazmat/primitives/aead/" target="_blank" rel="noreferrer">AES-GCM reference ↗</a></div>
+        </section>
+
+        <section class="view" id="view-settings" aria-labelledby="settingsHeading">
+          <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-line"></span> WORKSPACE PREFERENCES</div><h1 id="settingsHeading">Settings</h1><p class="lead">Adjust the local interface and default puzzle preferences.</p></div><span class="status-chip">THIS DEVICE</span></div>
+          <div class="settings-layout">
+            <div class="panel">
+              <div class="panel-heading"><div><span class="panel-kicker">APPEARANCE</span><h2>Interface theme</h2></div></div>
+              <div class="preference-row"><div><strong>Color theme</strong><small>Choose the appearance of the workstation.</small></div><select id="themeSelect" class="select-control"><option value="dark">Dark workstation</option><option value="light">Light</option></select></div>
+              <div class="panel-divider"></div>
+              <div class="panel-heading"><div><span class="panel-kicker">PUZZLE DEFAULTS</span><h2>Transformation preferences</h2></div></div>
+              <div class="preference-row"><div><strong>Default keyboard transitions</strong><small>More transitions create more puzzle steps, not stronger encryption.</small></div><select id="defaultTransitions" class="select-control"><option value="2">2 transitions</option><option value="3">3 transitions</option><option value="4">4 transitions</option></select></div>
+              <div class="panel-divider"></div>
+              <div class="panel-heading"><div><span class="panel-kicker">PRIVACY</span><h2>Local-first by design</h2></div></div>
+              <div class="privacy-list"><div><span class="privacy-check">✓</span><div><strong>No cloud calls</strong><small>Encryption and decryption run in the local Python process.</small></div></div><div><span class="privacy-check">✓</span><div><strong>No message history</strong><small>Messages and secret keys are not saved to browser storage.</small></div></div><div><span class="privacy-check">✓</span><div><strong>Separate key export</strong><small>Secret keys are downloaded separately from puzzle files.</small></div></div></div>
+              <div class="settings-saved" id="settingsSaved" role="status">Preferences are stored locally in this browser.</div>
+            </div>
+            <aside class="panel side-panel">
+              <span class="panel-kicker">SECURITY NOTES</span><h2>Protect your secret key</h2>
+              <ul class="security-list"><li>Share puzzle and key through separate channels.</li><li>Never commit real key files to GitHub.</li><li>Anyone with the key and puzzle can decrypt the message.</li><li>Keep the terminal running only while using the app.</li></ul>
+              <div class="version-card"><span>APPLICATION</span><strong>CipherKeys</strong><small>Local browser edition · v1.0</small></div>
+            </aside>
+          </div>
+        </section>
+      </main>
+      <footer class="main-footer"><span>CIPHERKEYS <b>·</b> CRYPTOGRAPHY PUZZLE STUDIO</span><span><i class="pulse-dot"></i> LOCAL-ONLY SESSION</span></footer>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
