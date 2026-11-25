@@ -1,0 +1,110 @@
+name: import CipherKeys release
+
+on:
+  push:
+    branches:
+      - sync/cipherkeys-v1.1.0-import
+    paths:
+      - sync_archive.b64
+      - .github/workflows/import-release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sync/cipherkeys-v1.1.0-import
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Unpack and overlay release
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          import io
+          import shutil
+          import tarfile
+          from pathlib import Path, PurePosixPath
+
+          raw = base64.b64decode(Path("sync_archive.b64").read_bytes(), validate=True)
+          with tarfile.open(fileobj=io.BytesIO(raw), mode="r:xz") as archive:
+              for member in archive.getmembers():
+                  name = PurePosixPath(member.name)
+                  if name.is_absolute() or ".." in name.parts:
+                      raise SystemExit(f"Unsafe archive path: {member.name}")
+              archive.extractall("release")
+          source = Path("release/cipher-game")
+          if not (source / "main.py").is_file():
+              raise SystemExit("Release archive has an unexpected layout.")
+          shutil.copytree(source, Path("."), dirs_exist_ok=True)
+          PY
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile Python
+        run: python -m compileall -q cipher_game webapp main.py run_web.py
+      - name: Check browser JavaScript
+        run: node --check webapp/static/app.js
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+  commit-release:
+    name: Commit validated release
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sync/cipherkeys-v1.1.0-import
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Unpack and overlay release
+        run: |
+          python - <<'PY'
+          import base64
+          import io
+          import shutil
+          import tarfile
+          from pathlib import Path, PurePosixPath
+
+          raw = base64.b64decode(Path("sync_archive.b64").read_bytes(), validate=True)
+          with tarfile.open(fileobj=io.BytesIO(raw), mode="r:xz") as archive:
+              for member in archive.getmembers():
+                  name = PurePosixPath(member.name)
+                  if name.is_absolute() or ".." in name.parts:
+                      raise SystemExit(f"Unsafe archive path: {member.name}")
+              archive.extractall("release")
+          source = Path("release/cipher-game")
+          if not (source / "main.py").is_file():
+              raise SystemExit("Release archive has an unexpected layout.")
+          shutil.copytree(source, Path("."), dirs_exist_ok=True)
+          PY
+      - name: Remove temporary transfer files
+        run: |
+          rm -rf release sync_archive.b64 .github/workflows/import-release.yml
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          find . -type f -name '*.pyc' -delete
+      - name: Commit release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "release: synchronize CipherKeys v1.1.0"
+          git push origin HEAD:sync/cipherkeys-v1.1.0-import
