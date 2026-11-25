@@ -97,9 +97,10 @@ jobs:
               raise SystemExit("Release archive has an unexpected layout.")
           shutil.copytree(source, Path("."), dirs_exist_ok=True)
           PY
-      - name: Remove temporary transfer files
+      - name: Restore existing CI workflow and remove transfer files
         run: |
-          rm -rf release sync_archive.b64 .github/workflows/import-release.yml
+          git checkout -- .github/workflows/tests.yml
+          rm -rf release sync_archive.b64
           rm -f sync_archive.part*
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
           find . -type f -name '*.pyc' -delete
